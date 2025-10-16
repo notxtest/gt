@@ -1,13 +1,15 @@
-FROM python:3.10-alpine
+FROM python:3.10-slim
+
 WORKDIR /app
 COPY . /app
 
-# Alpine mein build dependencies
-RUN apk add --no-cache \
+# Build dependencies
+RUN apt-get update && apt-get install -y \
     gcc \
-    musl-dev \
-    linux-headers
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
 
+# Requirements install
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
