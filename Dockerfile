@@ -4,8 +4,10 @@ WORKDIR /app
 
 COPY repo /app
 
-# Install build tools before installing Python packages
-RUN apt-get update && apt-get install -y gcc libc-dev && rm -rf /var/lib/apt/lists/*
+# Install gcc and required build dependencies before installing Python packages
+RUN apt-get update && \
+    apt-get install -y gcc python3-dev musl-dev build-essential && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN if [ -f "/app/requirements.txt" ]; then \
         pip install --no-cache-dir -r /app/requirements.txt; \
