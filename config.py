@@ -11,7 +11,7 @@ import os
 # Required configurations with default values
 API_ID = int(os.getenv("API_ID", 23640310))
 API_HASH = os.getenv("API_HASH", "079f8339732e35e032a64ee020e0b90b")
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8021675724:AAGjIVhXqfJkEdu5cVdyIEaHVC5mglns9_U")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8021675724:AAHYRytVubAfTol4PQmILqphz12P9VRyDJU)
 MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://rj5706603:O95nvJYxapyDHfkw@cluster0.fzmckei.mongodb.net/?retryWrites=true&w=majority")
 DB_NAME = os.getenv("DB_NAME", "Cluster0")
 
