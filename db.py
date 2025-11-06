@@ -77,18 +77,36 @@ async def get_total_groups():
     return await db.groups.count_documents({"is_active": True})
 
 # ==========================================================
-# 📊 BOT STATS SYSTEM
+# 📊 BOT STATS SYSTEM (Updated)
 # ==========================================================
 
 async def get_bot_stats():
-    """Bot ke overall stats get karega"""
+    """Bot ke overall stats get karega with configurations"""
     total_users = await get_total_users()
     total_groups = await get_total_groups()
     
+    # Default configurations stats
     stats = {
         "total_users": total_users,
         "total_groups": total_groups,
+        "force_sub_count": 3,           # Default force sub channels
+        "admin_count": 3,               # Default admin count  
+        "banned_users": 1,              # Default banned users
+        "auto_delete": "ᴇɴᴀʙʟᴇᴅ",      # Auto delete mode
+        "protect_content": "ᴅɪsᴀʙʟᴇᴅ", # Protect content
+        "hide_caption": "ᴅɪsᴀʙʟᴇᴅ",    # Hide caption
+        "channel_button": "ᴅɪsᴀʙʟᴇᴅ",  # Channel button
+        "request_fsub": "ᴇɴᴀʙʟᴇᴅ",     # Request fsub mode
         "last_updated": datetime.now()
     }
     
     return stats
+
+async def update_bot_stats(stats: dict):
+    """Bot stats update karega"""
+    stats["last_updated"] = datetime.now()
+    await db.bot_stats.update_one(
+        {"_id": "global_stats"},
+        {"$set": stats},
+        upsert=True
+    )
