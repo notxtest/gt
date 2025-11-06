@@ -1,123 +1,161 @@
-# ============================================================
-# Group Manager Bot
-# Author: notxkrishna (https://github.com/notxkrishnaa) 
-# Support: https://t.me/
-# Channel: https://t.me/
-# License: Private-source (keep credits, no resale)
-# ============================================================
-
 import motor.motor_asyncio
-from config import MONGO_URI, DB_NAME
+from config import MONGO_URI, DB_NAME, MAX_BOTS
 import logging
+from datetime import datetime
 
-# setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='[%(levelname)s] %(asctime)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO)
 
 try:
     client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI)
     db = client[DB_NAME]
-    logging.info("✅ MongoDB connected successfully!")
+    logging.info("✅ MongoDB connected!")
 except Exception as e:
-    logging.error(f"❌ Failed to connect to MongoDB: {e}")
+    logging.error(f"❌ MongoDB error: {e}")
 
 # ==========================================================
-# 🟢 WELCOME MESSAGE SYSTEM
+# 🤖 BOT MANAGEMENT SYSTEM
 # ==========================================================
 
-async def set_welcome_message(chat_id, text: str):
-    await db.welcome.update_one(
-        {"chat_id": chat_id},
-        {"$set": {"message": text}},
+async def add_bot_to_db(bot_token: str, bot_username: str, added_by: int, bot_name: str = None, creator: str = None, owner: str = None, start_image: str = None):
+    """New bot add karega database mein"""
+    
+    # Check if maximum limit reached
+    total_bots = await db.bots.count_documents({})
+    if total_bots >= MAX_BOTS:
+        return False, "❌ Maximum bot limit reached! (50 bots max)"
+    
+    # Check if bot already exists
+    existing_bot = await db.bots.find_one({
+        "$or": [
+            {"bot_token": bot_token},
+            {"bot_username": bot_username}
+        ]
+    })
+    
+    if existing_bot:
+        return False, "❌ Bot already exists in database!"
+    
+    # Add new bot
+    bot_data = {
+        "bot_token": bot_token,
+        "bot_username": bot_username,
+        "bot_name": bot_name or "Anime File Store",
+        "creator": creator or "@Creator",
+        "owner": owner or "@Owner",
+        "start_image": start_image or "https://telegra.ph/file/default-start-image.jpg",
+        "added_by": added_by,
+        "added_at": datetime.now(),
+        "is_active": True,
+        "files_count": 0,
+        "users_count": 0
+    }
+    
+    await db.bots.insert_one(bot_data)
+    return True, "✅ Bot added successfully!"
+
+async def remove_bot_from_db(bot_username: str, removed_by: int):
+    """Bot remove karega database se"""
+    result = await db.bots.delete_one({"bot_username": bot_username})
+    if result.deleted_count > 0:
+        # Bot ke saare files bhi delete karo
+        await db.files.delete_many({"bot_username": bot_username})
+        return True, "✅ Bot removed successfully!"
+    return False, "❌ Bot not found!"
+
+async def get_bot_by_token(bot_token: str):
+    """Bot details get karega token se"""
+    return await db.bots.find_one({"bot_token": bot_token})
+
+async def get_bot_by_username(bot_username: str):
+    """Bot details get karega username se"""
+    return await db.bots.find_one({"bot_username": bot_username})
+
+async def get_all_bots():
+    """Saare active bots get karega"""
+    cursor = db.bots.find({"is_active": True})
+    return await cursor.to_list(length=MAX_BOTS)
+
+async def update_bot_settings(bot_username: str, settings: dict):
+    """Bot ki settings update karega"""
+    await db.bots.update_one(
+        {"bot_username": bot_username},
+        {"$set": settings}
+    )
+
+async def is_bot_owner(user_id: int, bot_username: str):
+    """Check karega if user is bot owner"""
+    bot = await db.bots.find_one({"bot_username": bot_username})
+    if bot:
+        return bot.get("added_by") == user_id
+    return False
+
+# ==========================================================
+# 📊 BOT STATS SYSTEM
+# ==========================================================
+
+async def get_bot_stats(bot_username: str):
+    """Bot ke stats get karega"""
+    stats_data = await db.bot_stats.find_one({"bot_username": bot_username})
+    if stats_data:
+        return stats_data
+    
+    # Default stats agar nahi hai to
+    default_stats = {
+        "bot_username": bot_username,
+        "force_sub_count": 3,
+        "admin_count": 3,
+        "banned_users": 1,
+        "auto_delete": "ᴇɴᴀʙʟᴇᴅ",
+        "protect_content": "ᴅɪsᴀʙʟᴇᴅ",
+        "hide_caption": "ᴅɪsᴀʙʟᴇᴅ",
+        "channel_button": "ᴅɪsᴀʙʟᴇᴅ",
+        "request_fsub": "ᴇɴᴀʙʟᴇᴅ",
+        "total_files": 0,
+        "total_users": 0
+    }
+    return default_stats
+
+async def update_bot_stats(bot_username: str, stats: dict):
+    """Bot stats update karega"""
+    await db.bot_stats.update_one(
+        {"bot_username": bot_username},
+        {"$set": stats},
         upsert=True
     )
 
-async def get_welcome_message(chat_id):
-    data = await db.welcome.find_one({"chat_id": chat_id})
-    return data.get("message") if data else None
+# ==========================================================
+# 📁 FILE STORAGE SYSTEM
+# ==========================================================
 
-async def set_welcome_status(chat_id, status: bool):
-    await db.welcome.update_one(
-        {"chat_id": chat_id},
-        {"$set": {"enabled": status}},
-        upsert=True
+async def save_file(bot_username: str, file_data: dict):
+    """File save karega with bot username"""
+    file_data["bot_username"] = bot_username
+    file_data["uploaded_at"] = datetime.now()
+    
+    await db.files.insert_one(file_data)
+    
+    # Bot ke file count update karo
+    await db.bots.update_one(
+        {"bot_username": bot_username},
+        {"$inc": {"files_count": 1}}
     )
 
-async def get_welcome_status(chat_id) -> bool:
-    data = await db.welcome.find_one({"chat_id": chat_id})
-    if not data:  # default ON
-        return True
-    return bool(data.get("enabled", True))
+async def get_bot_files(bot_username: str, limit=50):
+    """Specific bot ki files get karega"""
+    cursor = db.files.find({"bot_username": bot_username}).sort("uploaded_at", -1).limit(limit)
+    return await cursor.to_list(length=limit)
 
-# ==========================================================
-# 🔒 LOCK SYSTEM
-# ==========================================================
+async def search_bot_files(bot_username: str, query: str):
+    """Specific bot ki files search karega"""
+    cursor = db.files.find({
+        "bot_username": bot_username,
+        "$or": [
+            {"file_name": {"$regex": query, "$options": "i"}},
+            {"caption": {"$regex": query, "$options": "i"}}
+        ]
+    }).sort("uploaded_at", -1).limit(50)
+    return await cursor.to_list(length=50)
 
-async def set_lock(chat_id, lock_type, status: bool):
-    await db.locks.update_one(
-        {"chat_id": chat_id},
-        {"$set": {f"locks.{lock_type}": status}},
-        upsert=True
-    )
-
-async def get_locks(chat_id):
-    data = await db.locks.find_one({"chat_id": chat_id})
-    return data.get("locks", {}) if data else {}
-
-# ==========================================================
-# ⚠️ WARN SYSTEM
-# ==========================================================
-
-async def add_warn(chat_id: int, user_id: int) -> int:
-    data = await db.warns.find_one({"chat_id": chat_id, "user_id": user_id})
-    warns = data.get("count", 0) + 1 if data else 1
-
-    await db.warns.update_one(
-        {"chat_id": chat_id, "user_id": user_id},
-        {"$set": {"count": warns}},
-        upsert=True
-    )
-    return warns
-
-async def get_warns(chat_id: int, user_id: int) -> int:
-    data = await db.warns.find_one({"chat_id": chat_id, "user_id": user_id})
-    return data.get("count", 0) if data else 0
-
-async def reset_warns(chat_id: int, user_id: int):
-    await db.warns.update_one(
-        {"chat_id": chat_id, "user_id": user_id},
-        {"$set": {"count": 0}},
-        upsert=True
-    )
-
-# ==========================================================
-# 🧹 CLEANUP UTILS (Optional)
-# ==========================================================
-
-async def clear_group_data(chat_id: int):
-    await db.welcome.delete_one({"chat_id": chat_id})
-    await db.locks.delete_one({"chat_id": chat_id})
-    await db.warns.delete_many({"chat_id": chat_id})
-
-
-# ==========================================================
-# 👤 USER SYSTEM (for broadcast)
-# ==========================================================
-async def add_user(user_id, first_name):
-    await db.users.update_one(
-        {"user_id": user_id},
-        {"$set": {"first_name": first_name}},
-        upsert=True
-    )
-
-async def get_all_users():
-    cursor = db.users.find({}, {"_id": 0, "user_id": 1})
-    users = []
-    async for document in cursor:
-        # Make sure the document has 'user_id'
-        if "user_id" in document:
-            users.append(document["user_id"])
-    return users
-                                     
+async def get_file_by_id(file_id: str, bot_username: str):
+    """File get karega ID se"""
+    return await db.files.find_one({"file_id": file_id, "bot_username": bot_username})
