@@ -1,6 +1,6 @@
 pyrogram==2.0.106
 tgcrypto==1.2.5
-motor==3.1.1
-pymongo[srv]==4.6.3
-deep-translator==1.11.4
-indic-transliteration==2.3.75
+motor==3.3.2
+pymongo==4.5.0
+flask==2.3.3
+python-dotenv==1.0.0
