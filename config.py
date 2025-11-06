@@ -14,7 +14,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", "8021675724:AAFjluR96BQRGHqwEPVfJTsyMdF7p0e3q
 BOT_NAME = "Anime File Store"
 CREATOR_USERNAME = "@YourCreatorUsername"
 OWNER_USERNAME = "@YourOwnerUsername"
-START_IMAGE = "https://telegra.ph/file/your-start-image.jpg"  # Default image
+START_IMAGE = "https://graph.org/file/b64391fde1b12e62b2157-0fa3f3eb118b6c5d71.jpg"  # Default image
 
 # ==========================================================
 # 🗄️ DATABASE CONFIGURATION
