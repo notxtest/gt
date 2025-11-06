@@ -10,7 +10,7 @@ API_HASH = os.getenv("API_HASH", "079f8339732e35e032a64ee020e0b90b")
 # 🤖 PRIMARY BOT CONFIGURATION
 # ==========================================================
 OWNER_ID = 7171541681
-BOT_TOKEN = os.getenv("BOT_TOKEN")  # Primary bot token
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8021675724:AAFjluR96BQRGHqwEPVfJTsyMdF7p0e3qzw")  # Primary bot token
 BOT_NAME = "Anime File Store"
 CREATOR_USERNAME = "@YourCreatorUsername"
 OWNER_USERNAME = "@YourOwnerUsername"
